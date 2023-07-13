@@ -32,10 +32,24 @@ class Base:
 
 
 class DatasetSegmentation(Base):
-    def __init__(self, samplers, patch_size, frequencies,
-                 data_augmentation=None, data_transform=None, label_transform=None, sampling_probabilities=None):
-        super().__init__(samplers, patch_size, frequencies,
-                 data_augmentation, data_transform, label_transform, sampling_probabilities)
+    def __init__(self, samplers, patch_size, frequencies, categories=None,
+                 data_augmentation=None, data_transform=None, label_transform=None, sampling_probabilities=None,
+                 num_samples=None):
+        super().__init__(samplers, patch_size, frequencies, categories,
+                 data_augmentation, data_transform, label_transform, sampling_probabilities, num_samples)
+
+    def compute_segmentation_mask(self, labels):
+        mask = np.zeros(self.patch_size)
+
+        if self.categories is None:
+            categories = list(range(labels.shape[0]))
+        else:
+            categories = self.categories
+
+        for i, cat in enumerate(categories):
+            mask[labels[i] == 1] = cat
+
+        return mask.astype(int)
 
     def __getitem__(self, idx):
         sampler = self._get_sampler(idx)
@@ -50,17 +64,17 @@ class DatasetSegmentation(Base):
         data = crop_data(cruise, center_location, self.patch_size, self.frequencies)
         labels = crop_labels(cruise, center_location, self.patch_size, self.categories)
 
-        # TODO create label mask
-
+        # Compute 2D segmentation mask from the labels
+        mask = self.compute_segmentation_mask(labels)
 
         if self.data_augmentation is not None:
-            data, labels = self.data_augmentation(data, labels)
+            data, mask = self.data_augmentation(data, mask)
         if self.label_transform is not None:
-            data, labels = self.label_transform(data, labels)
+            data, mask = self.label_transform(data, mask)
         if self.data_transform is not None:
-            data, labels = self.data_transform(data, labels)
+            data, mask = self.data_transform(data, mask)
 
-        return {'data': data, 'labels': labels}
+        return {'data': data, 'mask': mask, 'labels': labels}
 
 
 class DatasetBoundingBox(Base):

@@ -6,9 +6,11 @@ from samplers.random import Random
 from samplers.gridded import Gridded
 from utils.cropping import crop_data, crop_labels
 
+TEST_SURVEY = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
+
 class TestRandomSampler(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
+        cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
                                           require_bottom=True))
@@ -32,7 +34,7 @@ class TestRandomSampler(unittest.TestCase):
 
 class TestGriddedSampler(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
+        cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
                                           require_bottom=True))
@@ -43,7 +45,7 @@ class TestGriddedSampler(unittest.TestCase):
 
 class TestCropUtils(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
+        cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
                                           require_bottom=True))

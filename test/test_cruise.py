@@ -2,10 +2,11 @@ import unittest
 import numpy as np
 from cruise.base import Cruise, CruiseConfig
 
+TEST_SURVEY = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
 
 class TestGriddedSampler(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
+        cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
                                           require_bottom=True))
@@ -24,3 +25,4 @@ class TestGriddedSampler(unittest.TestCase):
 
     def test_categories(self):
         self.assertEqual([1, 27, 6009], self.cruise.categories())
+
