@@ -21,7 +21,7 @@ class Gridded:
     def __call__(self, idx):
         cruise_idx, grid_idx = self.cruise_idxs[idx]
         gridded_cruise = self.gridded_cruises[cruise_idx]
-        return gridded_cruise[grid_idx]
+        return gridded_cruise(grid_idx)
 
 
 class GriddedCruise:
@@ -33,7 +33,7 @@ class GriddedCruise:
         # Calculate center points of patches
         (patch_width, patch_height) = patch_size
         left = np.arange(-patch_overlap, self.cruise.num_pings() - patch_width, step=patch_width - 2 * patch_overlap)
-        upper = np.arange(-patch_overlap, self.cruise.num_range() - patch_height, step=patch_height - 2 * patch_overlap)
+        upper = np.arange(-patch_overlap, self.cruise.num_ranges() - patch_height, step=patch_height - 2 * patch_overlap)
         center_pings = left + patch_width // 2
         center_ranges = upper + patch_height // 2
 

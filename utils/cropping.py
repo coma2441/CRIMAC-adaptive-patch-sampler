@@ -49,18 +49,43 @@ def crop_data(cruise, center_location, patch_size, frequencies=None, boundary_va
     return out_data
 
 
-def crop_labels(cruise, center_location, patch_size, categories=None, boundary_val=np.nan):
+def crop_annotations(cruise, center_location, patch_size, categories=None, boundary_val=np.nan):
     if categories is None:
         categories = cruise.categories()
 
     cruise_coords = get_bbox_crop(center_location, patch_size)
     slice_coords = get_slice_coords(cruise, cruise_coords)
 
-    labels = cruise.get_label_slice(slice_coords[0][0], slice_coords[1][0], slice_coords[0][1], slice_coords[1][1],
+    annotation = cruise.get_annotation_slice(slice_coords[0][0], slice_coords[1][0], slice_coords[0][1], slice_coords[1][1],
                                     categories)
 
     out_labels = np.ones(shape=(len(categories), patch_size[0], patch_size[1])) * boundary_val
     crop_idxs = get_crop_idxs(slice_coords, cruise_coords, patch_size)
 
-    out_labels[:, crop_idxs[0][0]:crop_idxs[1][0], crop_idxs[0][1]:crop_idxs[1][1]] = labels.values
+    out_labels[:, crop_idxs[0][0]:crop_idxs[1][0], crop_idxs[0][1]:crop_idxs[1][1]] = annotation.values
     return out_labels
+
+
+def crop_bbox(cruise, center_location, patch_size, categories=None):
+    if categories is None:
+        categories = cruise.categories()
+
+    cruise_coords = get_bbox_crop(center_location, patch_size)
+    slice_coords = get_slice_coords(cruise, cruise_coords)
+
+    df = cruise.get_school_boxes(slice_coords[0][0], slice_coords[1][0], slice_coords[0][1], slice_coords[1][1],
+                                    categories)
+    bboxes = df[['startpingindex', 'upperdeptindex', 'endpingindex', 'lowerdeptindex']].values.astype(np.int32)
+    category_labels = df.category.values.astype(np.int32)
+
+    # Crop bboxes to fit patch
+    bboxes[bboxes[:, 0] < slice_coords[0][0], 0] = slice_coords[0][0]
+    bboxes[bboxes[:, 1] < slice_coords[0][1], 1] = slice_coords[0][1]
+    bboxes[bboxes[:, 2] >= slice_coords[1][0], 2] = slice_coords[1][0]
+    bboxes[bboxes[:, 3] >= slice_coords[1][1], 3] = slice_coords[1][1]
+
+    # Convert to patch coordinates
+    bboxes[:, [0, 2]] -= cruise_coords[0][0]
+    bboxes[:, [1, 3]] -= cruise_coords[0][1]
+
+    return bboxes, category_labels

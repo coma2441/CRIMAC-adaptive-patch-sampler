@@ -4,7 +4,7 @@ import numpy as np
 from cruise.base import Cruise, CruiseConfig
 from samplers.random import Random
 from samplers.gridded import Gridded
-from utils.cropping import crop_data, crop_labels
+from utils.cropping import crop_data, crop_annotations, crop_bbox
 
 TEST_SURVEY = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
 
@@ -13,7 +13,8 @@ class TestRandomSampler(unittest.TestCase):
         cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
-                                          require_bottom=True))
+                                          require_bottom=True,
+                                          require_school_boxes=True))
         self.num_samples = 1000
         self.sampler = Random(cruise_list=[self.cruise], num_samples=self.num_samples)
 
@@ -37,7 +38,8 @@ class TestGriddedSampler(unittest.TestCase):
         cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
-                                          require_bottom=True))
+                                          require_bottom=True,
+                                          require_school_boxes=True))
         self.num_samples = 1000
         self.patch_size = [256, 256]
         self.sampler = Gridded(cruise_list=[self.cruise], patch_size=self.patch_size, patch_overlap=0)
@@ -48,7 +50,8 @@ class TestCropUtils(unittest.TestCase):
         cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
-                                          require_bottom=True))
+                                          require_bottom=True,
+                                          require_school_boxes=True))
         self.num_pings = self.cruise.num_pings()
         self.num_ranges = self.cruise.num_ranges()
 
@@ -77,25 +80,41 @@ class TestCropUtils(unittest.TestCase):
         self.assertEqual(data.shape, (2, 256, 256))
 
     def test_edge_cases_labels(self):
-        self.assertFalse(np.all(np.isnan(crop_labels(self.cruise, [0, 0], [256, 256]))))
-        self.assertFalse(np.all(np.isnan(crop_labels(self.cruise, [self.num_pings, 0], [256, 256]))))
+        self.assertFalse(np.all(np.isnan(crop_annotations(self.cruise, [0, 0], [256, 256]))))
+        self.assertFalse(np.all(np.isnan(crop_annotations(self.cruise, [self.num_pings, 0], [256, 256]))))
 
-    def test_output_labels(self):
-        labels = crop_labels(self.cruise, [1000, 0], [256, 256])
-        self.assertTrue(np.all(np.isnan(labels[:, :, :128])))
+    def test_output_annotations(self):
+        annotations = crop_annotations(self.cruise, [1000, 0], [256, 256])
+        self.assertTrue(np.all(np.isnan(annotations[:, :, :128])))
 
-        labels = crop_labels(self.cruise, [0, 500], [256, 256])
-        self.assertTrue(np.all(np.isnan(labels[:, :128, :])))
+        annotations = crop_annotations(self.cruise, [0, 500], [256, 256])
+        self.assertTrue(np.all(np.isnan(annotations[:, :128, :])))
 
-        labels = crop_labels(self.cruise, [0, 500], [256, 256], boundary_val=-100)
-        self.assertTrue(np.all(labels[:, :128, :] == -100))
+        annotations = crop_annotations(self.cruise, [0, 500], [256, 256], boundary_val=-100)
+        self.assertTrue(np.all(annotations[:, :128, :] == -100))
 
-    def test_output_shape_labels(self):
-        labels = crop_labels(self.cruise, [1000, 500], [256, 512])
-        self.assertEqual(labels.shape, (3, 256, 512))
+    def test_output_shape_annotations(self):
+        annotations = crop_annotations(self.cruise, [1000, 500], [256, 512])
+        self.assertEqual(annotations.shape, (3, 256, 512))
 
-        labels = crop_labels(self.cruise, [1000, 500], [512, 256])
-        self.assertEqual(labels.shape, (3, 512, 256))
+        annotations = crop_annotations(self.cruise, [1000, 500], [512, 256])
+        self.assertEqual(annotations.shape, (3, 512, 256))
 
-        labels = crop_labels(self.cruise, [1000, 500], [256, 256], categories=[1, 27])
-        self.assertEqual(labels.shape, (2, 256, 256))
+        annotations = crop_annotations(self.cruise, [1000, 500], [256, 256], categories=[1, 27])
+        self.assertEqual(annotations.shape, (2, 256, 256))
+
+    def test_output_boxes(self):
+        boxes, labels = crop_bbox(self.cruise, [1000, 0], [256, 256])
+        self.assertEqual(len(labels), 0)
+        self.assertEqual(boxes.shape, (0, 4))
+
+        boxes, labels = crop_bbox(self.cruise, [78268, 578], [256, 256]) # patch with three fish schools
+        self.assertEqual(len(labels), 3)
+        self.assertEqual(boxes.shape, (3, 4))
+
+        boxes, labels = crop_bbox(self.cruise, [78268, 578], [256, 256], categories=[1]) # patch with 2 "other" schools
+        self.assertEqual(len(labels), 2)
+        self.assertEqual(boxes.shape, (2, 4))
+
+
+

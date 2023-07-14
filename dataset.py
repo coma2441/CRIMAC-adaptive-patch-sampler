@@ -1,5 +1,5 @@
 import numpy as np
-from utils.cropping import crop_data, crop_labels
+from utils.cropping import crop_data, crop_annotations, crop_bbox
 
 class Base:
     def __init__(self, samplers, patch_size, frequencies, categories=None,
@@ -25,10 +25,16 @@ class Base:
     def __len__(self):
         return self.num_samples
 
-    def _get_sampler(self, idx):
-        i = np.random.rand()
-        sampler = self.samplers[np.where(i < self.sampler_probs)[0][0]]
-        return sampler
+    def _get_location(self, idx):
+        if len(self.samplers) > 1:
+            i = np.random.rand()
+            sampler = self.samplers[np.where(i < self.sampler_probs)[0][0]]
+            out = sampler()
+        else:
+            sampler = self.samplers[0]
+            out = sampler(idx)
+
+        return out
 
 
 class DatasetSegmentation(Base):
@@ -42,7 +48,7 @@ class DatasetSegmentation(Base):
         mask = np.zeros(self.patch_size)
 
         if self.categories is None:
-            categories = list(range(labels.shape[0]))
+            categories = np.arange(labels.shape[0]) + 1
         else:
             categories = self.categories
 
@@ -52,8 +58,7 @@ class DatasetSegmentation(Base):
         return mask.astype(int)
 
     def __getitem__(self, idx):
-        sampler = self._get_sampler(idx)
-        sampler_out = sampler()
+        sampler_out = self._get_location(idx)
 
         cruise = sampler_out['cruise']
         center_ping = sampler_out['center_ping']
@@ -62,10 +67,10 @@ class DatasetSegmentation(Base):
         # do data crop
         center_location = np.array([center_ping, center_range])
         data = crop_data(cruise, center_location, self.patch_size, self.frequencies)
-        labels = crop_labels(cruise, center_location, self.patch_size, self.categories)
+        annotation = crop_annotations(cruise, center_location, self.patch_size, self.categories)
 
         # Compute 2D segmentation mask from the labels
-        mask = self.compute_segmentation_mask(labels)
+        mask = self.compute_segmentation_mask(annotation)
 
         if self.data_augmentation is not None:
             data, mask = self.data_augmentation(data, mask)
@@ -74,7 +79,7 @@ class DatasetSegmentation(Base):
         if self.data_transform is not None:
             data, mask = self.data_transform(data, mask)
 
-        return {'data': data, 'mask': mask, 'labels': labels}
+        return {'data': data, 'mask': mask, 'labels': annotation}
 
 
 class DatasetBoundingBox(Base):
@@ -84,8 +89,7 @@ class DatasetBoundingBox(Base):
                          data_augmentation, data_transform, label_transform, sampling_probabilities)
 
     def __getitem__(self, idx):
-        sampler = self._get_sampler(idx)
-        sampler_out = sampler()
+        sampler_out = self._get_location(idx)
 
         cruise = sampler_out['cruise']
         center_ping = sampler_out['center_ping']
@@ -94,16 +98,8 @@ class DatasetBoundingBox(Base):
         # do data crop
         center_location = np.array([center_ping, center_range])
         data = crop_data(cruise, center_location, self.patch_size, self.frequencies)
-        labels = crop_labels(cruise, center_location, self.patch_size, self.categories)
+        boxes, labels = crop_bbox(cruise, center_location, self.patch_size, self.categories)
 
-        # TODO create bbox
-        bbox = None
+        # TODO add transforms
 
-        if self.data_augmentation is not None:
-            data, bbox = self.data_augmentation(data, bbox)
-        if self.label_transform is not None:
-            data, bbox = self.label_transform(data, bbox)
-        if self.data_transform is not None:
-            data, bbox = self.data_transform(data, bbox)
-
-        return {'data': data, 'bbox': None}
+        return {'data': data, 'boxes': boxes, 'labels': labels}

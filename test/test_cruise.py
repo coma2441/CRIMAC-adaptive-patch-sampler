@@ -9,7 +9,8 @@ class TestGriddedSampler(unittest.TestCase):
         cruise_path = TEST_SURVEY
         self.cruise = Cruise(CruiseConfig(path=cruise_path,
                                           require_annotations=True,
-                                          require_bottom=True))
+                                          require_bottom=True,
+                                          require_school_boxes=True))
 
 
     def test_frequences(self):
