@@ -2,6 +2,12 @@ import numpy as np
 
 
 def get_bbox_crop(center, patch_size):
+    """
+    Get bounding box coordinates from center point and patch size
+    :param center: Center coordinates, [x, y]
+    :param patch_size: Size of patch, [width, height]
+    :return:
+    """
     patch_corners = np.array([[0, 0], [patch_size[0], patch_size[1]]])
     data_coord = patch_corners + np.array(center) - np.array(patch_size) // 2
 
@@ -10,6 +16,12 @@ def get_bbox_crop(center, patch_size):
 
 
 def get_slice_coords(cruise, cruise_coords):
+    """
+    Get slice coordinates for cropping a patch from cruise data, respecting data boundaries
+    :param cruise: Cruise object
+    :param cruise_coords: Coordinates of patch in cruise data, [[x0, y0], [x1, y1]]
+    :return: Coordinates to crop from cruise data, [[x0, y0], [x1, y1]]
+    """
     num_pings = cruise.num_pings()
     num_ranges = cruise.num_ranges()
 
@@ -24,6 +36,13 @@ def get_slice_coords(cruise, cruise_coords):
 
 
 def get_crop_idxs(slice_coords, cruise_coords, patch_size):
+    """
+    Get coordinates of data, relative to the cropped patch
+    :param slice_coords: Coordinates of the crop in cruise data [[x0, y0], [x1, y1]]
+    :param cruise_coords: Coordinates of the patch in cruise data, [[x0, y0], [x1, y1]]
+    :param patch_size: Size of the patch, [width, height]
+    :return: coordinates of data, relative to the cropped patch, [[x0, y0], [x1, y1]]
+    """
     crop_idxs = [[slice_coords[0][0] - cruise_coords[0][0],
                   slice_coords[0][1] - cruise_coords[0][1]],
                  [patch_size[0] - (cruise_coords[1][0] - slice_coords[1][0]),
@@ -33,6 +52,15 @@ def get_crop_idxs(slice_coords, cruise_coords, patch_size):
 
 
 def crop_data(cruise, center_location, patch_size, frequencies=None, boundary_val=np.nan):
+    """
+    Crop a patch from cruise data
+    :param cruise: Cruise object
+    :param center_location: Center location of patch in cruise data, [x, y]
+    :param patch_size: Size of patch, [width, height]
+    :param frequencies: Frequencies to included. If None, all frequencies are included
+    :param boundary_val: Fill value if crop is outside of cruise data
+    :return: Array with cropped data, [frequencies, width, height]
+    """
     if frequencies is None:
         frequencies = cruise.frequencies()
 
@@ -50,6 +78,15 @@ def crop_data(cruise, center_location, patch_size, frequencies=None, boundary_va
 
 
 def crop_annotations(cruise, center_location, patch_size, categories=None, boundary_val=np.nan):
+    """
+    Crop a patch from cruise annotations
+    :param cruise: Cruise object
+    :param center_location: Center location of patch in cruise annotations, [x, y]
+    :param patch_size: Size of patch, [width, height]
+    :param categories: Cruise categories to include. If None, all categories are included
+    :param boundary_val: Fill value if crop is outside of cruise annotations
+    :return: Array with cropped annotations, [categories, width, height]
+    """
     if categories is None:
         categories = cruise.categories()
 
@@ -67,6 +104,14 @@ def crop_annotations(cruise, center_location, patch_size, categories=None, bound
 
 
 def crop_bbox(cruise, center_location, patch_size, categories=None):
+    """
+    Get bounding box annotations for a patch
+    :param cruise: Cruise object
+    :param center_location: Center location of patch in cruise annotations, [x, y]
+    :param patch_size: Size of patch, [width, height]
+    :param categories: Categories to include. If None, all categories are included
+    :return: (np.array) Array with bounding box annotations, [num_boxes, 4], and (np.array) category labels, [num_boxes]
+    """
     if categories is None:
         categories = cruise.categories()
 
@@ -75,6 +120,8 @@ def crop_bbox(cruise, center_location, patch_size, categories=None):
 
     df = cruise.get_school_boxes(slice_coords[0][0], slice_coords[1][0], slice_coords[0][1], slice_coords[1][1],
                                     categories)
+
+    # TODO: Fix spelling when fixed in data
     bboxes = df[['startpingindex', 'upperdeptindex', 'endpingindex', 'lowerdeptindex']].values.astype(np.int32)
     category_labels = df.category.values.astype(np.int32)
 

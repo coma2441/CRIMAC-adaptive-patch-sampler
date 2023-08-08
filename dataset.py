@@ -101,5 +101,11 @@ class DatasetBoundingBox(Base):
         boxes, labels = crop_bbox(cruise, center_location, self.patch_size, self.categories)
 
         # TODO add transforms
+        if self.data_augmentation is not None:
+            data, boxes = self.data_augmentation(data, boxes)
+        if self.label_transform is not None:
+            data, boxes = self.label_transform(data, boxes)
+        if self.data_transform is not None:
+            data, boxes = self.data_transform(data, boxes)
 
         return {'data': data, 'boxes': boxes, 'labels': labels}
