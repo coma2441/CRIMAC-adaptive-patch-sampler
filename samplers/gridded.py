@@ -3,6 +3,11 @@ import numpy as np
 
 class Gridded:
     def __init__(self, cruise_list, patch_size, patch_overlap=0):
+        """
+        :param list[Cruise] cruise_list: list of cruises to sample from
+        :param tuple patch_size: [width, height]
+        :param int patch_overlap: number of pixels to overlap between neighboring patches
+        """
         self.cruise_list = cruise_list
         self.patch_size = patch_size
         self.patch_overlap = patch_overlap
@@ -25,7 +30,13 @@ class Gridded:
 
 
 class GriddedCruise:
+    """ Sample from a cruise by iterating over a grid of patches """
     def __init__(self, cruise, patch_size, patch_overlap=0):
+        """
+        :param cruise: cruise object to sample from
+        :param tuple patch_size: [width, height]
+        :param int patch_overlap: number of pixels to overlap between neighboring patches
+        """
         self.cruise = cruise
         self.patch_size = patch_size
         self.patch_overlap = patch_overlap

@@ -3,7 +3,7 @@ import unittest
 from cruise.base import Cruise, CruiseConfig
 from samplers.random import Random
 from samplers.gridded import Gridded
-from dataset import DatasetSegmentation
+from dataset import DatasetSegmentation, DatasetBoundingBox
 
 import numpy as np
 
@@ -60,5 +60,52 @@ class TestDatasetSegmentation(unittest.TestCase):
         self.assertListEqual(list(np.unique(out['mask'])), [0, 1, 27])
 
 
+class TestDatasetBoundingBox(unittest.TestCase):
+    def setUp(self) -> None:
+        cruise_path = TEST_SURVEY
+        self.cruise = Cruise(CruiseConfig(path=cruise_path,
+                                          require_annotations=True,
+                                          require_bottom=True,
+                                          require_school_boxes=True))
+        self.num_samples = 1000
+        self.random_sampler = Random(cruise_list=[self.cruise], num_samples=self.num_samples)
+
+        self.dataset = DatasetBoundingBox([self.random_sampler], patch_size=[256, 256],
+                                           frequencies=[18000, 38000, 120000, 200000])
+
+
+    def test_output_shape(self):
+        out = self.dataset[0]
+        self.assertEqual(out['data'].shape, (4, 256, 256))
+        self.assertEqual(out['boxes'].shape[1], 4)
+
+        datasetRectangle = DatasetBoundingBox([self.random_sampler], patch_size=[512, 256], frequencies=[18000, 38000, 120000, 200000])
+        out = datasetRectangle[0]
+        self.assertEqual(out['data'].shape, (4, 512, 256))
+        self.assertEqual(out['boxes'].shape[1], 4)
+
+        datasetRectangle2 = DatasetBoundingBox([self.random_sampler], patch_size=[256, 1028], frequencies=[18000, 38000, 120000, 200000])
+        out = datasetRectangle2[0]
+        self.assertEqual(out['data'].shape, (4, 256, 1028))
+        self.assertEqual(out['boxes'].shape[1], 4)
+
+        datasetOdd = DatasetBoundingBox([self.random_sampler], patch_size=[257, 257], frequencies=[18000, 38000, 120000, 200000])
+        out = datasetOdd[0]
+        self.assertEqual(out['data'].shape, (4, 257, 257))
+        self.assertEqual(out['boxes'].shape[1], 4)
+
+    def test_output_targets(self):
+        gridded_sampler = Gridded([self.cruise], patch_size=(256, 256))
+        gridded_dataset = DatasetBoundingBox([gridded_sampler], patch_size=[256, 256],
+                                      frequencies=[18000, 38000, 120000, 200000])
+
+        # Select area with fish schools
+        out = gridded_dataset[3051]
+
+        self.assertTrue(out['boxes'].shape[0] > 0)
+        self.assertTrue(np.all(out['boxes']) >= 0)
+        self.assertTrue(np.all(out['boxes']) < 256)
+
+        self.assertEqual(list(np.unique(out['labels'])), [1, 27])
 
 

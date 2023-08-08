@@ -1,7 +1,12 @@
 import numpy as np
 
 class Random:
+    """ Sample randomly from a list of cruises """
     def __init__(self, cruise_list, num_samples=10000):
+        """
+        :param list[Cruise] cruise_list: list of cruises to sample from
+        :param int num_samples: number of samples to draw, used to determine the length of a Dataset
+        """
         self.cruise_list = cruise_list
         self.num_samples = num_samples
 
