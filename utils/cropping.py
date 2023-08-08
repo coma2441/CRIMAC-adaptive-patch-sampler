@@ -88,4 +88,5 @@ def crop_bbox(cruise, center_location, patch_size, categories=None):
     bboxes[:, [0, 2]] -= cruise_coords[0][0]
     bboxes[:, [1, 3]] -= cruise_coords[0][1]
 
+    # boxes: [N, 4]: [x0, y0, x1, y1]
     return bboxes, category_labels

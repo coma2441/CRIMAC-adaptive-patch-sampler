@@ -1,9 +1,12 @@
 import unittest
 import numpy as np
+import pandas as pd
+import os
 
 from cruise.base import Cruise, CruiseConfig
 from samplers.random import Random
 from samplers.gridded import Gridded
+from samplers.indexed import Indexed
 from utils.cropping import crop_data, crop_annotations, crop_bbox
 
 TEST_SURVEY = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
@@ -115,6 +118,53 @@ class TestCropUtils(unittest.TestCase):
         boxes, labels = crop_bbox(self.cruise, [78268, 578], [256, 256], categories=[1]) # patch with 2 "other" schools
         self.assertEqual(len(labels), 2)
         self.assertEqual(boxes.shape, (2, 4))
+
+class TestIndexSampler(unittest.TestCase):
+    def setUp(self) -> None:
+        cruise_path = TEST_SURVEY
+        self.cruise = Cruise(CruiseConfig(path=cruise_path,
+                                          require_annotations=True,
+                                          require_bottom=True,
+                                          require_school_boxes=True))
+        self.num_pings = self.cruise.num_pings()
+        self.num_ranges = self.cruise.num_ranges()
+
+        # Create and save dummy index sampler file
+        np.random.seed(42)
+        random_pings = np.random.randint(0, self.num_pings, 1000)
+        random_ranges = np.random.randint(0, self.num_ranges, 1000)
+
+        self.df = pd.DataFrame({'ping_index': random_pings, 'range_index': random_ranges,
+                           'cruise_name': [self.cruise.name]*1000})
+        self.df.to_csv('test_index_sampler.csv', index=True)
+
+        # Create sampler
+        self.sampler = Indexed([self.cruise], 'test_index_sampler.csv')
+
+    def test_index_sampler(self):
+        # Assert sampler returns the expected indices
+        out_0 = self.sampler(0)
+        self.assertEqual(out_0["cruise"].name, self.cruise.name)
+        self.assertEqual(out_0["center_ping"], self.df.iloc[0].ping_index)
+        self.assertEqual(out_0["center_range"], self.df.iloc[0].range_index)
+
+        out_100 = self.sampler(100)
+        self.assertEqual(out_100["cruise"].name, self.cruise.name)
+        self.assertEqual(out_100["center_ping"], self.df.iloc[100].ping_index)
+        self.assertEqual(out_100["center_range"], self.df.iloc[100].range_index)
+
+        self.assertEqual(len(self.sampler), 1000)
+        out_last = self.sampler(999)
+        self.assertEqual(out_last["cruise"].name, self.cruise.name)
+        self.assertEqual(out_last["center_ping"], self.df.iloc[999].ping_index)
+        self.assertEqual(out_last["center_range"], self.df.iloc[999].range_index)
+
+        # assert error is raised if sampler is called with an index larger than the number of samples
+        self.assertRaises(IndexError, self.sampler, 1000)
+
+    def tearDown(self):
+        # Delete sampler after test
+        os.remove('test_index_sampler.csv')
 
 
 
