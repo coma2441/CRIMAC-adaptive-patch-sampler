@@ -1,10 +1,25 @@
 import numpy as np
 from utils.cropping import crop_data, crop_annotations, crop_bbox
 
+
 class Base:
     def __init__(self, samplers, patch_size, frequencies, categories=None,
                  data_augmentation=None, data_transform=None, label_transform=None, sampling_probabilities=None,
                  num_samples=None):
+        """
+        Base dataset for marine acoustic data
+        :param list samplers: list of sampler objects
+        :param tuple patch_size: size of output patches, (width, height)
+        :param list frequencies: list of acoustic frequencies to sample from
+        :param list categories: list of categories to sample from
+        :param data_augmentation:
+        :param data_transform:
+        :param label_transform:
+        :param (list, None) sampling_probabilities: list of probabilities for each sampler, if None the probability is the same for all samplers
+        :param (int, None) num_samples: number of samples to draw from the dataset, if None use total length
+         of all samplers
+        """
+
         self.samplers = samplers
         self.patch_size = patch_size
         self.frequencies = frequencies
@@ -12,12 +27,13 @@ class Base:
         self.data_augmentation = data_augmentation
         self.data_transform = data_transform
         self.label_transform = label_transform
+
+        # Set num_samples, which defines the length of the dataset
         self.num_samples = num_samples if num_samples is not None else sum([len(sampler) for sampler in self.samplers])
 
         # Normalize sampling probabilities
         if sampling_probabilities is None:
             self.sampler_probs = np.ones(len(samplers))
-
         self.sampler_probs = np.array(self.sampler_probs)
         self.sampler_probs = np.cumsum(self.sampler_probs).astype(float)
         self.sampler_probs /= np.max(self.sampler_probs)
@@ -41,8 +57,20 @@ class DatasetSegmentation(Base):
     def __init__(self, samplers, patch_size, frequencies, categories=None,
                  data_augmentation=None, data_transform=None, label_transform=None, sampling_probabilities=None,
                  num_samples=None):
+        """
+        Dataset for segmentation tasks
+        :param list samplers: list of sampler objects
+        :param tuple patch_size: size of output patches, (width, height)
+        :param list frequencies: list of acoustic frequencies to sample from
+        :param list categories: list of categories to sample from
+        :param data_augmentation:
+        :param data_transform:
+        :param label_transform:
+        :param (list, None) sampling_probabilities: list of probabilities for each sampler, if None the probability is the same for all samplers
+        :param (int, None) num_samples: number of samples to draw from the dataset, if None use total length of all samplers
+        """
         super().__init__(samplers, patch_size, frequencies, categories,
-                 data_augmentation, data_transform, label_transform, sampling_probabilities, num_samples)
+                         data_augmentation, data_transform, label_transform, sampling_probabilities, num_samples)
 
     def compute_segmentation_mask(self, labels):
         mask = np.zeros(self.patch_size)
@@ -85,6 +113,16 @@ class DatasetSegmentation(Base):
 class DatasetBoundingBox(Base):
     def __init__(self, samplers, patch_size, frequencies,
                  data_augmentation=None, data_transform=None, label_transform=None, sampling_probabilities=None):
+        """
+        Dataset for bounding box tasks
+        :param list samplers: list of sampler objects
+        :param tuple patch_size: size of output data patches, (width, height)
+        :param list frequencies: list of acoustic frequencies to sample from
+        :param data_augmentation:
+        :param data_transform:
+        :param label_transform:
+        :param (list, None) sampling_probabilities: list of probabilities for each sampler, if None the probability is the same for all samplers
+        """
         super().__init__(samplers, patch_size, frequencies,
                          data_augmentation, data_transform, label_transform, sampling_probabilities)
 

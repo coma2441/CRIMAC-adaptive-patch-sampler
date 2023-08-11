@@ -4,20 +4,19 @@ from cruise.base import Cruise, CruiseConfig
 from samplers.random import Random
 from samplers.gridded import Gridded
 from dataset import DatasetSegmentation, DatasetBoundingBox
+from test.test_constants import *
 
 import numpy as np
 
-TEST_SURVEY = "/lokal_uten_backup/pro/COGMAR/zarr_data_feb23/2019/S2019847_0511"
 
 class TestDatasetSegmentation(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = TEST_SURVEY
-        self.cruise = Cruise(CruiseConfig(path=cruise_path,
+        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
                                           require_annotations=True,
                                           require_bottom=True,
                                           require_school_boxes=True))
         self.num_samples = 1000
-        self.random_sampler = Random(cruise_list=[self.cruise], num_samples=self.num_samples)
+        self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
 
         self.dataset = DatasetSegmentation([self.random_sampler], patch_size=[256, 256],
                                            frequencies=[18000, 38000, 120000, 200000])
@@ -40,13 +39,13 @@ class TestDatasetSegmentation(unittest.TestCase):
                                       frequencies=[18000, 38000, 120000, 200000], num_samples=100)
         self.assertEqual(len(small_dataset), 100)
 
-        gridded_sampler = Gridded([self.cruise], patch_size=(256, 256), patch_overlap=0)
+        gridded_sampler = Gridded([self.short_cruise], patch_size=(256, 256), patch_overlap=0)
         gridded_dataset = DatasetSegmentation([gridded_sampler], patch_size=[256, 256],
                                       frequencies=[18000, 38000, 120000, 200000], categories=None)
-        self.assertEqual(len(gridded_dataset), (self.cruise.num_pings()//256)*(self.cruise.num_ranges()//256))
+        self.assertEqual(len(gridded_dataset), (self.short_cruise.num_pings()//256)*(self.short_cruise.num_ranges()//256))
 
     def test_school_output(self):
-        gridded_sampler = Gridded([self.cruise], patch_size=(256, 256))
+        gridded_sampler = Gridded([self.short_cruise], patch_size=(256, 256))
         gridded_dataset = DatasetSegmentation([gridded_sampler], patch_size=[256, 256],
                                       frequencies=[18000, 38000, 120000, 200000], categories=None)
 
@@ -62,13 +61,12 @@ class TestDatasetSegmentation(unittest.TestCase):
 
 class TestDatasetBoundingBox(unittest.TestCase):
     def setUp(self) -> None:
-        cruise_path = TEST_SURVEY
-        self.cruise = Cruise(CruiseConfig(path=cruise_path,
+        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
                                           require_annotations=True,
                                           require_bottom=True,
                                           require_school_boxes=True))
         self.num_samples = 1000
-        self.random_sampler = Random(cruise_list=[self.cruise], num_samples=self.num_samples)
+        self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
 
         self.dataset = DatasetBoundingBox([self.random_sampler], patch_size=[256, 256],
                                            frequencies=[18000, 38000, 120000, 200000])
@@ -95,7 +93,7 @@ class TestDatasetBoundingBox(unittest.TestCase):
         self.assertEqual(out['boxes'].shape[1], 4)
 
     def test_output_targets(self):
-        gridded_sampler = Gridded([self.cruise], patch_size=(256, 256))
+        gridded_sampler = Gridded([self.short_cruise], patch_size=(256, 256))
         gridded_dataset = DatasetBoundingBox([gridded_sampler], patch_size=[256, 256],
                                       frequencies=[18000, 38000, 120000, 200000])
 
