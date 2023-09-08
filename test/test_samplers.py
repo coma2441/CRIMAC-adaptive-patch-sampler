@@ -12,12 +12,18 @@ from test.test_constants import *
 
 class TestRandomSampler(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                                require_annotations=True,
-                                                require_bottom=True,
-                                                require_school_boxes=True))
-        self.num_samples = 1000
-        self.sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                                    require_annotations=True,
+                                                    require_bottom=True,
+                                                    require_school_boxes=True))
+            self.num_samples = 1000
+            self.sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
 
     def test_length(self):
         self.assertEqual(len(self.sampler), self.num_samples)
@@ -58,35 +64,47 @@ class TestRandomSampler(unittest.TestCase):
 
 class TestGriddedSampler(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                                require_annotations=True,
-                                                require_bottom=True,
-                                                require_school_boxes=True))
-        self.num_samples = 1000
-        self.patch_size = (256, 256)
-        self.sampler = Regular(cruise_list=[self.short_cruise], patch_size=self.patch_size, patch_overlap=0)
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                                    require_annotations=True,
+                                                    require_bottom=True,
+                                                    require_school_boxes=True))
+            self.num_samples = 1000
+            self.patch_size = (256, 256)
+            self.sampler = Regular(cruise_list=[self.short_cruise], stride=(256, 256))
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
 
 
 class TestIndexSampler(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                                require_annotations=True,
-                                                require_bottom=True,
-                                                require_school_boxes=True))
-        self.num_pings = self.short_cruise.num_pings()
-        self.num_ranges = self.short_cruise.num_ranges()
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                                    require_annotations=True,
+                                                    require_bottom=True,
+                                                    require_school_boxes=True))
+            self.num_pings = self.short_cruise.num_pings()
+            self.num_ranges = self.short_cruise.num_ranges()
 
-        # Create and save dummy index sampler file
-        np.random.seed(42)
-        random_pings = np.random.randint(0, self.num_pings, 1000)
-        random_ranges = np.random.randint(0, self.num_ranges, 1000)
+            # Create and save dummy index sampler file
+            np.random.seed(42)
+            random_pings = np.random.randint(0, self.num_pings, 1000)
+            random_ranges = np.random.randint(0, self.num_ranges, 1000)
 
-        self.df = pd.DataFrame({'ping_index': random_pings, 'range_index': random_ranges,
-                                'cruise_name': [self.short_cruise.name] * 1000})
-        self.df.to_csv('test_index_sampler.csv', index=True)
+            self.df = pd.DataFrame({'ping_index': random_pings, 'range_index': random_ranges,
+                                    'cruise_name': [self.short_cruise.name] * 1000})
+            self.df.to_csv('test_index_sampler.csv', index=True)
 
-        # Create sampler
-        self.sampler = Indexed([self.short_cruise], 'test_index_sampler.csv')
+            # Create sampler
+            self.sampler = Indexed([self.short_cruise], 'test_index_sampler.csv')
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
 
     def test_index_sampler(self):
         # Assert sampler returns the expected indices
@@ -112,3 +130,7 @@ class TestIndexSampler(unittest.TestCase):
     def tearDown(self):
         # Delete sampler after test
         os.remove('test_index_sampler.csv')
+
+
+if __name__ == '__main__':
+    unittest.main()

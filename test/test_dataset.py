@@ -1,4 +1,6 @@
 import unittest
+import os
+import numpy as np
 
 from cruise.base import Cruise, CruiseConfig
 from samplers.random import Random
@@ -6,20 +8,24 @@ from samplers.regular import Regular
 from dataset import DatasetSegmentation, DatasetBoundingBox
 from test.test_constants import *
 
-import numpy as np
-
 
 class TestDatasetSegmentation(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                          require_annotations=True,
-                                          require_bottom=True,
-                                          require_school_boxes=True))
-        self.num_samples = 1000
-        self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                              require_annotations=True,
+                                              require_bottom=True,
+                                              require_school_boxes=True))
+            self.num_samples = 1000
+            self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
 
-        self.dataset = DatasetSegmentation([self.random_sampler], patch_size=[256, 256],
-                                           frequencies=[18000, 38000, 120000, 200000])
+            self.dataset = DatasetSegmentation([self.random_sampler], patch_size=[256, 256],
+                                               frequencies=[18000, 38000, 120000, 200000])
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
 
     def test_categories(self):
         dataset = DatasetSegmentation([self.random_sampler], patch_size=[256, 256],
@@ -61,15 +67,22 @@ class TestDatasetSegmentation(unittest.TestCase):
 
 class TestDatasetBoundingBox(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                          require_annotations=True,
-                                          require_bottom=True,
-                                          require_school_boxes=True))
-        self.num_samples = 1000
-        self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                              require_annotations=True,
+                                              require_bottom=True,
+                                              require_school_boxes=True))
+            self.num_samples = 1000
+            self.random_sampler = Random(cruise_list=[self.short_cruise], num_samples=self.num_samples)
 
-        self.dataset = DatasetBoundingBox([self.random_sampler], patch_size=[256, 256],
-                                           frequencies=[18000, 38000, 120000, 200000])
+            self.dataset = DatasetBoundingBox([self.random_sampler], patch_size=[256, 256],
+                                               frequencies=[18000, 38000, 120000, 200000])
+
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
 
 
     def test_output_shape(self):
@@ -106,4 +119,5 @@ class TestDatasetBoundingBox(unittest.TestCase):
 
         self.assertEqual(list(np.unique(out['labels'])), [1, 27])
 
-
+if __name__ == '__main__':
+    unittest.main()

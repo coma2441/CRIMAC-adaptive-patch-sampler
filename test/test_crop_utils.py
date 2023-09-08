@@ -1,3 +1,4 @@
+import os.path
 import unittest
 import numpy as np
 
@@ -7,12 +8,19 @@ from test.test_constants import *
 
 class TestCropUtils(unittest.TestCase):
     def setUp(self) -> None:
-        self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
-                                          require_annotations=True,
-                                          require_bottom=True,
-                                          require_school_boxes=True))
-        self.num_pings = self.short_cruise.num_pings()
-        self.num_ranges = self.short_cruise.num_ranges()
+        if self.test_surveys_exist():
+            self.short_cruise = Cruise(CruiseConfig(path=SHORT_SURVEY_PATH,
+                                              require_annotations=True,
+                                              require_bottom=True,
+                                              require_school_boxes=True))
+            self.num_pings = self.short_cruise.num_pings()
+            self.num_ranges = self.short_cruise.num_ranges()
+        else:
+            self.skipTest("Short survey path not found")
+
+    def test_surveys_exist(self):
+        return os.path.isdir(SHORT_SURVEY_PATH)
+
 
     def test_edge_cases_data(self):
         self.assertFalse(np.all(np.isnan(crop_data(self.short_cruise, [0, 0], [256, 256]))))
@@ -74,3 +82,6 @@ class TestCropUtils(unittest.TestCase):
         boxes, labels = crop_bbox(self.short_cruise, [78268, 578], [256, 256], categories=[1]) # patch with 2 "other" schools
         self.assertEqual(len(labels), 2)
         self.assertEqual(boxes.shape, (2, 4))
+
+if __name__ == '__main__':
+    unittest.main()
