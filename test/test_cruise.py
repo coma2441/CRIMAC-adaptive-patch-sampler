@@ -33,7 +33,4 @@ class TestGriddedSampler(unittest.TestCase):
         self.assertEqual([1, 27, 6009], self.short_cruise.categories())
 
 if __name__ == '__main__':
-    import os
-    assert os.path.isdir(
-        SHORT_SURVEY_PATH), "Short survey data not found. Please run test_setup.py to download the data."
     unittest.main()
