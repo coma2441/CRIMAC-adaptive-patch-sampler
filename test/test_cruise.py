@@ -1,5 +1,7 @@
 import unittest
 import numpy as np
+import os
+
 from cruise.base import Cruise, CruiseConfig
 from test.test_constants import *
 
